@@ -5,7 +5,7 @@
   'use strict';
   var MATHJAX = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js';
   var doc = document, root = doc.documentElement;
-  window.RP = { version: '1.1.0' };
+  window.RP = { version: '1.2.0' };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -45,6 +45,7 @@
     card.className = 'rp-card';
     card.id = 'glance';
     var h = [];
+    if (d.mode === 'research') return renderResearchHead(d, card);
     var title = d.keywords && d.headline ? d.keywords + '：' + d.headline : (d.headline || d.keywords || d.title || '');
     h.push('<h1 class="rp-title">' + esc(title) + '</h1>');
 
@@ -83,6 +84,24 @@
         }).join(SEP) + '</p>');
       }
     }
+    card.innerHTML = h.join('');
+    return card;
+  }
+
+  /* a research page: one paper seen through one lens, dated, kept apart from the paper's own note */
+  function renderResearchHead(d, card) {
+    var lens = d.lens || {}, id = d.id || {}, L = d.links || {}, h = [];
+    h.push('<h1 class="rp-title">' + esc(d.keywords || '') + ' · ' + esc(lens.name ? '视角：' + lens.name : '之后的进展') + '</h1>');
+    var meta = [d.asof ? '截至 ' + esc(d.asof) : '', id.arxiv ? '原文 arXiv ' + esc(id.arxiv + (id.version || '')) : ''];
+    if (L.abs) meta.push('<a href="' + esc(L.abs) + '">abs</a>');
+    meta = meta.filter(Boolean).map(function (m) { return '<span class="m">' + m + '</span>'; });
+    if (meta.length) h.push('<p class="rp-kicker">' + meta.join(SEP) + '</p>');
+    var rows = '';
+    [['问题', lens.question], ['结论', d.verdict], ['空白', d.gap]].forEach(function (r) {
+      var body = field(r[1], d);
+      if (body) rows += '<dt>' + r[0] + '</dt><dd>' + body + '</dd>';
+    });
+    if (rows) h.push('<section class="glance"><dl>' + rows + '</dl></section>');
     card.innerHTML = h.join('');
     return card;
   }
