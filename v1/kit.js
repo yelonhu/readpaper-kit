@@ -5,7 +5,7 @@
   'use strict';
   var MATHJAX = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js';
   var doc = document, root = doc.documentElement;
-  window.RP = { version: '1.2.0' };
+  window.RP = { version: '1.3.0' };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -88,16 +88,19 @@
     return card;
   }
 
-  /* a research page: one paper seen through one lens, dated, kept apart from the paper's own note */
+  /* a research page: one question, dated, mapped across many papers; kept apart from paper notes */
   function renderResearchHead(d, card) {
-    var lens = d.lens || {}, id = d.id || {}, L = d.links || {}, h = [];
-    h.push('<h1 class="rp-title">' + esc(d.keywords || '') + ' · ' + esc(lens.name ? '视角：' + lens.name : '之后的进展') + '</h1>');
-    var meta = [d.asof ? '截至 ' + esc(d.asof) : '', id.arxiv ? '原文 arXiv ' + esc(id.arxiv + (id.version || '')) : ''];
-    if (L.abs) meta.push('<a href="' + esc(L.abs) + '">abs</a>');
+    var lens = d.lens || {}, h = [];
+    var name = d.name || ((d.keywords || '') + (lens.name ? ' · ' + lens.name : ''));
+    h.push('<h1 class="rp-title">' + esc(name) + '</h1>');
+    var c = d.coverage || {}, seed = d.seed || {};
+    var meta = [d.asof ? '截至 ' + esc(d.asof) : '', d.prev ? '上次 ' + esc(d.prev) : '',
+                c.screened ? '筛选 ' + esc(c.screened) + ' 篇' : '', c.read ? '全文 ' + esc(c.read) + ' 篇' : '',
+                seed.keywords ? '起点 ' + esc(seed.keywords) : ''];
     meta = meta.filter(Boolean).map(function (m) { return '<span class="m">' + m + '</span>'; });
     if (meta.length) h.push('<p class="rp-kicker">' + meta.join(SEP) + '</p>');
     var rows = '';
-    [['问题', lens.question], ['结论', d.verdict], ['空白', d.gap]].forEach(function (r) {
+    [['问题', d.question || lens.question], ['结论', d.verdict], ['空白', d.gap]].forEach(function (r) {
       var body = field(r[1], d);
       if (body) rows += '<dt>' + r[0] + '</dt><dd>' + body + '</dd>';
     });
@@ -132,9 +135,11 @@
     rail.className = 'rp-rail';
     rail.setAttribute('aria-label', '目录');
     var id = d.id || {};
-    var where = [id.arxiv ? 'arXiv ' + esc(id.arxiv + (id.version || '')) : '', esc(d.venue || '')].filter(Boolean).join(SEP);
-    rail.innerHTML = '<div class="name">' + esc(d.keywords || '') + '</div>' + linksOf('full') +
-                     '<div class="note">' + (where ? where + '<br>' : '') + '标签可跳到原文 PDF 对应页</div>';
+    var research = d.mode === 'research';
+    var where = research ? (d.asof ? '截至 ' + esc(d.asof) : '')
+              : [id.arxiv ? 'arXiv ' + esc(id.arxiv + (id.version || '')) : '', esc(d.venue || '')].filter(Boolean).join(SEP);
+    rail.innerHTML = '<div class="name">' + esc(research ? (d.name || d.keywords || '') : (d.keywords || '')) + '</div>' + linksOf('full') +
+                     '<div class="note">' + (where ? where + '<br>' : '') + (research ? '外部来源带日期与链接' : '标签可跳到原文 PDF 对应页') + '</div>';
     var chips = doc.createElement('nav');
     chips.className = 'rp-chips';
     chips.setAttribute('aria-label', '章节');
